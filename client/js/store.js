@@ -8,6 +8,7 @@ const Store = {
   items: [],
   cart: [],
   isLoading: false,
+  stockCache: {}, // Add a cache to keep track of current stock levels
 
   /**
    * Initialize the store module
@@ -186,17 +187,38 @@ const Store = {
     // Check if item is already in cart
     const existingItem = this.cart.find(cartItem => cartItem.id === item.id);
     
+    // Keep track of current stock in cache
+    if (!this.stockCache[item.id]) {
+      this.stockCache[item.id] = item.stock;
+    }
+    
+    const currentStock = this.stockCache[item.id];
+    
     if (existingItem) {
+      // Check if adding one more would exceed stock
+      if (existingItem.quantity >= currentStock) {
+        this.showError(`Sorry, only ${currentStock} units of "${item.name}" are available.`);
+        return;
+      }
       existingItem.quantity += 1;
     } else {
+      // Check if item is in stock
+      if (currentStock < 1) {
+        this.showError(`Sorry, "${item.name}" is out of stock.`);
+        return;
+      }
       this.cart.push({
         id: item.id,
         name: item.name,
         price: parseFloat(item.price),
         imageUrl: item.imageUrl,
+        stock: currentStock, // Store stock info with cart item
         quantity: 1
       });
     }
+    
+    // Update stock cache
+    this.stockCache[item.id] = currentStock - 1;
     
     // Save cart to local storage
     this.saveCart();
@@ -228,9 +250,32 @@ const Store = {
    */
   updateCartItemQuantity(itemId, quantity) {
     const item = this.cart.find(item => item.id === itemId);
-    if (item) {
-      item.quantity = Math.max(1, quantity); // Ensure quantity is at least 1
+    if (!item) return;
+    
+    // Find matching item in our items list to get current stock
+    const productItem = this.items.find(product => product.id === itemId);
+    let maxStock = item.stock; // Use cached stock from cart if available
+    
+    // If we have fresh stock data from the items array, use that
+    if (productItem) {
+      maxStock = productItem.stock;
+      // Update the stock cache
+      this.stockCache[itemId] = maxStock;
     }
+    
+    // Make sure the requested quantity doesn't exceed available stock
+    quantity = Math.min(quantity, maxStock);
+    
+    // Ensure quantity is at least 1
+    quantity = Math.max(1, quantity);
+    
+    // If trying to increase beyond available stock
+    if (quantity > maxStock) {
+      this.showError(`Sorry, only ${maxStock} units of "${item.name}" are available.`);
+      quantity = maxStock;
+    }
+    
+    item.quantity = quantity;
     this.saveCart();
     
     // If on cart page, re-render the cart
@@ -270,6 +315,26 @@ const Store = {
     // Display items in cart
     cartItemsContainer.innerHTML = '';
     this.cart.forEach(item => {
+      // Fetch current stock data if available
+      const productItem = this.items.find(product => product.id === item.id);
+      let currentStock = item.stock || 0; // Default to cached stock
+      
+      // If we have fresh stock data, use it
+      if (productItem) {
+        currentStock = productItem.stock;
+        // Update the stock cache
+        this.stockCache[item.id] = currentStock;
+      }
+      
+      // Check if current quantity exceeds available stock
+      const isOverStocked = item.quantity > currentStock;
+      if (isOverStocked) {
+        // Auto-adjust quantity to match available stock
+        item.quantity = currentStock;
+        this.saveCart();
+        this.showError(`Quantity for "${item.name}" has been adjusted due to stock limitations.`);
+      }
+      
       const cartItem = document.createElement('div');
       cartItem.className = 'cart-item';
       cartItem.innerHTML = `
@@ -279,11 +344,12 @@ const Store = {
         <div class="cart-item-details">
           <h3>${item.name}</h3>
           <p class="cart-item-price">$${item.price.toFixed(2)}</p>
+          ${currentStock <= 5 ? `<p class="stock-warning">${currentStock === 0 ? 'Out of stock!' : 'Low stock: ' + currentStock + ' left'}</p>` : ''}
         </div>
         <div class="cart-item-quantity">
           <button class="decrease-quantity" data-id="${item.id}">-</button>
-          <input type="number" min="1" value="${item.quantity}" data-id="${item.id}" class="quantity-input">
-          <button class="increase-quantity" data-id="${item.id}">+</button>
+          <input type="number" min="1" max="${currentStock}" value="${item.quantity}" data-id="${item.id}" class="quantity-input">
+          <button class="increase-quantity" data-id="${item.id}" ${item.quantity >= currentStock ? 'disabled' : ''}>+</button>
         </div>
         <div class="cart-item-total">
           $${(item.price * item.quantity).toFixed(2)}
@@ -372,6 +438,43 @@ const Store = {
     if (this.cart.length === 0) {
       this.showError('Your cart is empty. Add items before checking out.');
       return;
+    }
+    
+    // Verify stock one more time before checkout
+    try {
+      // Fetch latest item data
+      const latestItems = await API.getItems();
+      let stockIssues = [];
+      
+      // Check each cart item against latest stock
+      this.cart.forEach(cartItem => {
+        const latestItem = latestItems.find(item => item.id === cartItem.id);
+        if (latestItem) {
+          if (latestItem.stock < cartItem.quantity) {
+            stockIssues.push({
+              name: cartItem.name,
+              requested: cartItem.quantity,
+              available: latestItem.stock
+            });
+          }
+        }
+      });
+      
+      // If there are stock issues, alert the user and don't proceed
+      if (stockIssues.length > 0) {
+        let errorMsg = 'Some items in your cart are no longer available in requested quantities:\n';
+        stockIssues.forEach(issue => {
+          errorMsg += `\n- ${issue.name}: Requested: ${issue.requested}, Available: ${issue.available}`;
+        });
+        this.showError(errorMsg);
+        
+        // Reload the page to refresh stock data
+        window.location.reload();
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to verify stock before checkout:', error);
+      // Continue anyway since this is just a double-check
     }
     
     const username = document.getElementById('username').value.trim();
@@ -504,10 +607,12 @@ const Store = {
   },
 
   /**
-   * Save cart to localStorage
+   * Save cart to localStorage, including stock information
    */
   saveCart() {
+    // Save stock cache along with cart
     localStorage.setItem('hackathonCart', JSON.stringify(this.cart));
+    localStorage.setItem('hackathonStockCache', JSON.stringify(this.stockCache));
   },
 
   /**
@@ -517,9 +622,14 @@ const Store = {
     try {
       const savedCart = localStorage.getItem('hackathonCart');
       this.cart = savedCart ? JSON.parse(savedCart) : [];
+      
+      // Load stock cache
+      const savedStockCache = localStorage.getItem('hackathonStockCache');
+      this.stockCache = savedStockCache ? JSON.parse(savedStockCache) : {};
     } catch (error) {
       console.error('Failed to load cart:', error);
       this.cart = [];
+      this.stockCache = {};
     }
   },
 
