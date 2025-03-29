@@ -13,6 +13,9 @@ const Store = {
    * Initialize the store module
    */
   init() {
+    // Add global image error handler
+    this.setupImageErrorHandling();
+
     // Always load cart and update cart count on every page
     this.loadCart();
     this.updateCartCount();
@@ -27,6 +30,22 @@ const Store = {
     } else if (document.getElementById('order-status')) {
       this.initOrderPage();
     }
+  },
+
+  /**
+   * Setup global image error handling to use placeholder for failed images
+   */
+  setupImageErrorHandling() {
+    // Add a global handler for image loading errors
+    document.addEventListener('error', (e) => {
+      const target = e.target;
+      if (target.tagName === 'IMG') {
+        console.warn(`Image failed to load: ${target.src}`);
+        target.src = 'img/placeholder.svg';
+        // Prevent infinite loop if the placeholder itself fails
+        target.onerror = null;
+      }
+    }, true); // Use capture phase to catch all image errors
   },
 
   /**
@@ -134,7 +153,7 @@ const Store = {
       productCard.className = 'product-card';
       productCard.innerHTML = `
         <div class="product-image">
-          <img src="${item.imageUrl || 'https://via.placeholder.com/150?text=No+Image'}" alt="${item.name}">
+          <img src="${item.imageUrl || 'img/placeholder.svg'}" alt="${item.name}" onerror="this.src='img/placeholder.svg'">
         </div>
         <div class="product-info">
           <h3>${item.name}</h3>
@@ -255,7 +274,7 @@ const Store = {
       cartItem.className = 'cart-item';
       cartItem.innerHTML = `
         <div class="cart-item-image">
-          <img src="${item.imageUrl || 'https://via.placeholder.com/50?text=No+Image'}" alt="${item.name}">
+          <img src="${item.imageUrl || 'img/placeholder.svg'}" alt="${item.name}" onerror="this.src='img/placeholder.svg'">
         </div>
         <div class="cart-item-details">
           <h3>${item.name}</h3>

@@ -180,7 +180,7 @@ async function loadData() {
             description: productDetails.Description?.ProductDescription || 'No description available',
             manufacturer: productDetails.Manufacturer?.Name || 'DigiKey',
             datasheet: productDetails.DatasheetUrl || '#',
-            imageUrl: productDetails.PhotoUrl || 'https://placeholder.com/150'
+            imageUrl: productDetails.PhotoUrl || 'img/placeholder.svg'
           });
           console.log(`Successfully fetched data for DigiKey part ${item.id}`);
         } else {
@@ -190,7 +190,7 @@ async function loadData() {
             description: 'No description available',
             manufacturer: 'DigiKey',
             datasheet: '#',
-            imageUrl: 'https://placeholder.com/150'
+            imageUrl: 'img/placeholder.svg'
           });
           console.log(`Using fallback data for DigiKey part ${item.id}`);
         }
@@ -202,7 +202,7 @@ async function loadData() {
           description: 'No description available',
           manufacturer: 'Unknown',
           datasheet: '#',
-          imageUrl: 'https://placeholder.com/150'
+          imageUrl: 'img/placeholder.svg'
         });
       }
     }

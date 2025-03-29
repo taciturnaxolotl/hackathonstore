@@ -15,6 +15,9 @@ const Admin = {
    * Initialize the admin module
    */
   init() {
+    // Add global image error handler
+    this.setupImageErrorHandling();
+    
     // Check for existing admin session
     this.checkAdminSession();
     
@@ -36,6 +39,22 @@ const Admin = {
         orderIdInput.value = orderId;
       }
     }
+  },
+
+  /**
+   * Setup global image error handling to use placeholder for failed images
+   */
+  setupImageErrorHandling() {
+    // Add a global handler for image loading errors
+    document.addEventListener('error', (e) => {
+      const target = e.target;
+      if (target.tagName === 'IMG') {
+        console.warn(`Image failed to load: ${target.src}`);
+        target.src = 'img/placeholder.svg';
+        // Prevent infinite loop if the placeholder itself fails
+        target.onerror = null;
+      }
+    }, true); // Use capture phase to catch all image errors
   },
 
   /**
