@@ -244,17 +244,38 @@ const API_PREFIX = '/hackathon';
 /**
  * Check if there's sufficient stock for an order
  * @param {Object} order - The order with items to check
- * @returns {boolean} Whether all items are in stock
+ * @returns {Object} Result with status and details about stock issues
  */
 function checkOrderStock(order) {
+  const stockIssues = [];
+  
   // For each item in the order, check if there's enough stock
   for (const orderItem of order.items) {
     const product = allItems.find(item => item.id === orderItem.id);
-    if (!product || product.stock < orderItem.quantity) {
-      return false;
+    
+    if (!product) {
+      stockIssues.push({
+        id: orderItem.id,
+        name: orderItem.name || 'Unknown item',
+        requested: orderItem.quantity,
+        available: 0,
+        issue: 'Product not found'
+      });
+    } else if (product.stock < orderItem.quantity) {
+      stockIssues.push({
+        id: orderItem.id,
+        name: product.name,
+        requested: orderItem.quantity,
+        available: product.stock,
+        issue: 'Insufficient stock'
+      });
     }
   }
-  return true;
+  
+  return {
+    valid: stockIssues.length === 0,
+    stockIssues
+  };
 }
 
 /**
@@ -337,8 +358,13 @@ app.post(`${API_PREFIX}/orders`, (req, res) => {
   };
 
   // Check stock availability before accepting the order
-  if (!checkOrderStock(order)) {
-    return res.status(400).json({ error: 'Some items are out of stock' });
+  const stockCheck = checkOrderStock(order);
+  if (!stockCheck.valid) {
+    // Return detailed information about which items have stock issues
+    return res.status(400).json({ 
+      error: 'Some items are out of stock or have insufficient quantity',
+      stockIssues: stockCheck.stockIssues
+    });
   }
   
   // Save order
@@ -378,8 +404,14 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
   }
   
   // Check stock again before approving
-  if (status === 'approved' && !checkOrderStock(order)) {
-    return res.status(400).json({ error: 'Cannot approve order, some items are out of stock' });
+  if (status === 'approved') {
+    const stockCheck = checkOrderStock(order);
+    if (!stockCheck.valid) {
+      return res.status(400).json({ 
+        error: 'Cannot approve order, some items are out of stock or have insufficient quantity',
+        stockIssues: stockCheck.stockIssues
+      });
+    }
   }
   
   // Update order status
@@ -412,6 +444,27 @@ app.get(`${API_PREFIX}/orders`, (req, res) => {
   }
   
   res.json(orders);
+});
+
+// Add a new API endpoint to check stock availability without placing an order
+app.post(`${API_PREFIX}/check-stock`, (req, res) => {
+  const { cart } = req.body;
+  
+  if (!cart || !Array.isArray(cart) || cart.length === 0) {
+    return res.status(400).json({ error: 'Invalid cart data' });
+  }
+
+  // Create a temporary order-like object just for stock checking
+  const tempOrder = { items: cart };
+  
+  // Check stock availability
+  const stockCheck = checkOrderStock(tempOrder);
+  
+  // Return stock status to the client
+  res.json({
+    valid: stockCheck.valid,
+    stockIssues: stockCheck.stockIssues
+  });
 });
 
 // Save orders to JSON file

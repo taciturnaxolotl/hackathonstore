@@ -440,43 +440,6 @@ const Store = {
       return;
     }
     
-    // Verify stock one more time before checkout
-    try {
-      // Fetch latest item data
-      const latestItems = await API.getItems();
-      let stockIssues = [];
-      
-      // Check each cart item against latest stock
-      this.cart.forEach(cartItem => {
-        const latestItem = latestItems.find(item => item.id === cartItem.id);
-        if (latestItem) {
-          if (latestItem.stock < cartItem.quantity) {
-            stockIssues.push({
-              name: cartItem.name,
-              requested: cartItem.quantity,
-              available: latestItem.stock
-            });
-          }
-        }
-      });
-      
-      // If there are stock issues, alert the user and don't proceed
-      if (stockIssues.length > 0) {
-        let errorMsg = 'Some items in your cart are no longer available in requested quantities:\n';
-        stockIssues.forEach(issue => {
-          errorMsg += `\n- ${issue.name}: Requested: ${issue.requested}, Available: ${issue.available}`;
-        });
-        this.showError(errorMsg);
-        
-        // Reload the page to refresh stock data
-        window.location.reload();
-        return;
-      }
-    } catch (error) {
-      console.error('Failed to verify stock before checkout:', error);
-      // Continue anyway since this is just a double-check
-    }
-    
     const username = document.getElementById('username').value.trim();
     if (!username) {
       this.showError('Please enter your username.');
@@ -491,7 +454,25 @@ const Store = {
     }
     
     try {
-      // Send order to server
+      // Check stock availability first
+      const stockCheck = await API.checkStock(this.cart);
+      
+      if (!stockCheck.valid) {
+        let errorMessage = 'Some items in your cart are no longer available in the requested quantities:';
+        stockCheck.stockIssues.forEach(issue => {
+          errorMessage += `\n• ${issue.name}: Requested: ${issue.requested}, Available: ${issue.available}`;
+        });
+        
+        this.showError(errorMessage);
+        
+        if (checkoutButton) {
+          checkoutButton.disabled = false;
+          checkoutButton.innerHTML = 'Checkout';
+        }
+        return;
+      }
+      
+      // If stock check passes, try to place the order
       const result = await API.placeOrder(username, this.cart);
       
       // Clear cart after successful order

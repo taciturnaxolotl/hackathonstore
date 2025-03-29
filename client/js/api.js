@@ -71,6 +71,33 @@ const API = {
   },
 
   /**
+   * Check stock availability for items in cart
+   * @param {Array} cart - Array of cart items with quantity
+   * @returns {Promise<Object>} Stock check result
+   */
+  async checkStock(cart) {
+    try {
+      const response = await fetch(`${this.BASE_URL}/check-stock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cart })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to check stock');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error checking stock:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Gets order details by order ID
    * @param {string} orderId - The order ID
    * @returns {Promise<Object>} Order details
