@@ -22,9 +22,13 @@ let digikeyAccessToken = null;
 let tokenExpiry = null;
 
 // Middleware
-app.use(cors());
+// Enable CORS for all origins
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, '../client')));
 
 // Store data
 let allItems = [];
@@ -232,15 +236,16 @@ async function loadData() {
   }
 }
 
-// API Endpoints
+// API Endpoints - Update paths with /hackathon prefix
+const API_PREFIX = '/hackathon';
 
 // Get all items
-app.get('/api/items', (req, res) => {
+app.get(`${API_PREFIX}/items`, (req, res) => {
   res.json(allItems);
 });
 
 // Get a specific item by ID
-app.get('/api/items/:id', (req, res) => {
+app.get(`${API_PREFIX}/items/:id`, (req, res) => {
   const item = allItems.find(item => item.id === req.params.id);
   if (item) {
     res.json(item);
@@ -250,7 +255,7 @@ app.get('/api/items/:id', (req, res) => {
 });
 
 // Place an order
-app.post('/api/orders', (req, res) => {
+app.post(`${API_PREFIX}/orders`, (req, res) => {
   const { username, cart } = req.body;
   
   if (!username || !cart || !Array.isArray(cart) || cart.length === 0) {
@@ -285,7 +290,7 @@ app.post('/api/orders', (req, res) => {
 });
 
 // Get order by ID
-app.get('/api/orders/:id', (req, res) => {
+app.get(`${API_PREFIX}/orders/:id`, (req, res) => {
   const order = orders[req.params.id];
   if (order) {
     res.json(order);
@@ -295,7 +300,7 @@ app.get('/api/orders/:id', (req, res) => {
 });
 
 // Update order status (admin only)
-app.put('/api/orders/:id', (req, res) => {
+app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
   const { adminCode, status, note } = req.body;
   const orderId = req.params.id;
   
@@ -327,7 +332,7 @@ app.put('/api/orders/:id', (req, res) => {
 });
 
 // Get all orders (admin only)
-app.get('/api/orders', (req, res) => {
+app.get(`${API_PREFIX}/orders`, (req, res) => {
   const { adminCode } = req.query;
   
   // Check admin code - in a real app, use proper authentication
@@ -353,6 +358,7 @@ async function startServer() {
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      console.log(`API available at http://localhost:${PORT}${API_PREFIX}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

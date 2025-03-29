@@ -4,7 +4,8 @@
  */
 
 const API = {
-  BASE_URL: '/api',
+  // Base URL updated for the external API endpoint through Caddy
+  BASE_URL: 'https://api.viruus.zip/hackathon',
 
   /**
    * Fetches all items from the store
