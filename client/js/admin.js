@@ -356,6 +356,19 @@ const Admin = {
     const orderDetailsContainer = document.getElementById('order-details');
     if (!orderDetailsContainer) return;
     
+    // Fetch latest item data including current stock levels
+    const fetchCurrentItemData = async () => {
+      try {
+        // Get all items to check current stock levels
+        const allItems = await API.getItems();
+        return allItems;
+      } catch (error) {
+        console.error('Failed to fetch updated stock data:', error);
+        return [];
+      }
+    };
+    
+    // First render the basic order details
     orderDetailsContainer.innerHTML = `
       <div class="order-details ${orderData.status}">
         <div class="order-header">
@@ -383,22 +396,17 @@ const Admin = {
                 <th>Price</th>
                 <th>Quantity</th>
                 <th>Total</th>
+                <th>Stock</th>
               </tr>
             </thead>
-            <tbody>
-              ${orderData.items.map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td>$${item.price.toFixed(2)}</td>
-                  <td>${item.quantity}</td>
-                  <td>$${(item.price * item.quantity).toFixed(2)}</td>
-                </tr>
-              `).join('')}
+            <tbody id="order-items-body">
+              <tr><td colspan="5">Loading stock information...</td></tr>
             </tbody>
             <tfoot>
               <tr>
                 <td colspan="3">Total</td>
                 <td>$${orderData.totalPrice.toFixed(2)}</td>
+                <td></td>
               </tr>
             </tfoot>
           </table>
@@ -441,6 +449,37 @@ const Admin = {
       
       orderDetailsContainer.appendChild(actionButtons);
     }
+    
+    // Now fetch current stock data and update the table
+    fetchCurrentItemData().then(items => {
+      const tbody = document.getElementById('order-items-body');
+      if (!tbody) return;
+      
+      tbody.innerHTML = orderData.items.map(item => {
+        // Find current stock level
+        const currentItemData = items.find(i => i.id === item.id);
+        const currentStock = currentItemData ? currentItemData.stock : 0;
+        const outOfStock = currentStock < item.quantity;
+        
+        // Determine stock status display
+        let stockDisplay;
+        if (currentStock === 0) {
+          stockDisplay = `<span class="stock-status oos">OOS</span>`;
+        } else {
+          stockDisplay = `<span class="stock-status ${outOfStock ? 'low' : ''}">${currentStock}</span>`;
+        }
+        
+        return `
+          <tr class="${outOfStock ? 'stock-warning' : ''}">
+            <td>${item.name}</td>
+            <td>$${item.price.toFixed(2)}</td>
+            <td>${item.quantity}</td>
+            <td>$${(item.price * item.quantity).toFixed(2)}</td>
+            <td>${stockDisplay}</td>
+          </tr>
+        `;
+      }).join('');
+    });
   },
 
   /**

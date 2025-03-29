@@ -1,6 +1,6 @@
-part number,name,description,datasheet,manufacturer,image url
-12345,Resistor,1k Ohm Resistor,https://example.com/datasheet12345,OhmCorp,https://example.com/image12345.jpg
-67890,Capacitor,10uF Capacitor,https://example.com/datasheet67890,CapacitorInc,https://example.com/image67890.jpg
-11223,Diode,1N4007 Diode,https://example.com/datasheet11223,DiodeTech,https://example.com/image11223.jpg
-44556,Transistor,BC547 Transistor,https://example.com/datasheet44556,TransistorWorks,https://example.com/image44556.jpg
-78901,LED,Red LED,https://example.com/datasheet78901,LightCorp,https://example.com/image78901.jpg
+part number,name,description,datasheet,manufacturer,image url,stock
+12345,Resistor,1k Ohm Resistor,https://example.com/datasheet12345,OhmCorp,https://example.com/image12345.jpg,10
+67890,Capacitor,10uF Capacitor,https://example.com/datasheet67890,CapacitorInc,https://example.com/image67890.jpg,20
+11223,Diode,1N4007 Diode,https://example.com/datasheet11223,DiodeTech,https://example.com/image11223.jpg,30
+44556,Transistor,BC547 Transistor,https://example.com/datasheet44556,TransistorWorks,https://example.com/image44556.jpg,40
+78901,LED,Red LED,https://example.com/datasheet78901,LightCorp,https://example.com/image78901.jpg,5

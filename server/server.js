@@ -107,8 +107,8 @@ async function loadData() {
           manufacturer: row.manufacturer,
           imageUrl: row['image url'],
           type: 'custom',
-          price: (Math.random() * 20 + 5).toFixed(2), // Random price for custom items
-          stock: Math.floor(Math.random() * 100) + 10, // Random stock for custom items
+          price: parseFloat(row.price || (Math.random() * 20 + 5).toFixed(2)), // Use CSV price if available, otherwise random
+          stock: parseInt(row.stock) || Math.floor(Math.random() * 100) + 10, // Use CSV stock if available, otherwise random
         });
       })
       .on('end', () => {
@@ -239,6 +239,60 @@ async function loadData() {
 // API Endpoints - Update paths with /hackathon prefix
 const API_PREFIX = '/hackathon';
 
+// Add these functions for inventory management
+
+/**
+ * Check if there's sufficient stock for an order
+ * @param {Object} order - The order with items to check
+ * @returns {boolean} Whether all items are in stock
+ */
+function checkOrderStock(order) {
+  // For each item in the order, check if there's enough stock
+  for (const orderItem of order.items) {
+    const product = allItems.find(item => item.id === orderItem.id);
+    if (!product || product.stock < orderItem.quantity) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Reserve stock for an order (reduce available stock)
+ * @param {Object} order - The order to reserve stock for
+ */
+function reserveStock(order) {
+  for (const orderItem of order.items) {
+    const product = allItems.find(item => item.id === orderItem.id);
+    if (product) {
+      product.stock -= orderItem.quantity;
+    }
+  }
+  // Save updated stock to persistent storage
+  fs.writeFileSync(
+    path.join(__dirname, 'items.json'),
+    JSON.stringify(allItems, null, 2)
+  );
+}
+
+/**
+ * Return stock for an order (increase available stock)
+ * @param {Object} order - The order to return stock for
+ */
+function returnStock(order) {
+  for (const orderItem of order.items) {
+    const product = allItems.find(item => item.id === orderItem.id);
+    if (product) {
+      product.stock += orderItem.quantity;
+    }
+  }
+  // Save updated stock to persistent storage
+  fs.writeFileSync(
+    path.join(__dirname, 'items.json'),
+    JSON.stringify(allItems, null, 2)
+  );
+}
+
 // Get all items
 app.get(`${API_PREFIX}/items`, (req, res) => {
   res.json(allItems);
@@ -281,6 +335,11 @@ app.post(`${API_PREFIX}/orders`, (req, res) => {
       }
     ]
   };
+
+  // Check stock availability before accepting the order
+  if (!checkOrderStock(order)) {
+    return res.status(400).json({ error: 'Some items are out of stock' });
+  }
   
   // Save order
   orders[orderId] = order;
@@ -318,6 +377,11 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
     return res.status(400).json({ error: 'Status must be approved or denied' });
   }
   
+  // Check stock again before approving
+  if (status === 'approved' && !checkOrderStock(order)) {
+    return res.status(400).json({ error: 'Cannot approve order, some items are out of stock' });
+  }
+  
   // Update order status
   order.status = status;
   order.statusHistory.push({
@@ -325,6 +389,13 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
     timestamp: new Date().toISOString(),
     note: note || `Order ${status}`
   });
+  
+  // Manage stock based on status change
+  if (status === 'approved') {
+    reserveStock(order);
+  } else if (status === 'denied' && order.status === 'pending') {
+    // No need to return stock for denied orders since we're not reserving on order creation
+  }
   
   saveOrders();
   

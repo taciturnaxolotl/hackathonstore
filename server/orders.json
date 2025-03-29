@@ -1,0 +1,235 @@
+{
+  "3a9865d8-1ded-47c5-9cba-b0257f1db654": {
+    "id": "3a9865d8-1ded-47c5-9cba-b0257f1db654",
+    "username": "stockconflict1",
+    "items": [
+      {
+        "id": "78901",
+        "name": "LED",
+        "price": 20.27,
+        "imageUrl": "https://example.com/image78901.jpg",
+        "quantity": 3
+      }
+    ],
+    "totalPrice": 60.81,
+    "status": "approved",
+    "timestamp": "2025-03-29T18:48:10.074Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:48:10.074Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "approved",
+        "timestamp": "2025-03-29T18:48:39.666Z",
+        "note": "Order approved"
+      }
+    ]
+  },
+  "aa27087b-2867-4ec3-9e91-8e4eeac11eca": {
+    "id": "aa27087b-2867-4ec3-9e91-8e4eeac11eca",
+    "username": "stockconflict2",
+    "items": [
+      {
+        "id": "78901",
+        "name": "LED",
+        "price": 20.27,
+        "imageUrl": "https://example.com/image78901.jpg",
+        "quantity": 3
+      }
+    ],
+    "totalPrice": 60.81,
+    "status": "denied",
+    "timestamp": "2025-03-29T18:48:21.568Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:48:21.568Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "denied",
+        "timestamp": "2025-03-29T18:49:26.260Z",
+        "note": "not enough LEDs"
+      }
+    ]
+  },
+  "f3a92cbd-a651-4ec7-93ef-17337a52da1f": {
+    "id": "f3a92cbd-a651-4ec7-93ef-17337a52da1f",
+    "username": "stockconflict1",
+    "items": [
+      {
+        "id": "67890",
+        "name": "Capacitor",
+        "price": 18.44,
+        "imageUrl": "https://example.com/image67890.jpg",
+        "quantity": 11
+      }
+    ],
+    "totalPrice": 202.84,
+    "status": "approved",
+    "timestamp": "2025-03-29T18:52:03.349Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:52:03.349Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "approved",
+        "timestamp": "2025-03-29T18:52:40.568Z",
+        "note": "Order approved"
+      }
+    ]
+  },
+  "0d45f4a3-307e-44a0-ac53-0ca673de77f4": {
+    "id": "0d45f4a3-307e-44a0-ac53-0ca673de77f4",
+    "username": "stockconflict2",
+    "items": [
+      {
+        "id": "67890",
+        "name": "Capacitor",
+        "price": 18.44,
+        "imageUrl": "https://example.com/image67890.jpg",
+        "quantity": 10
+      }
+    ],
+    "totalPrice": 184.4,
+    "status": "pending",
+    "timestamp": "2025-03-29T18:52:30.415Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:52:30.415Z",
+        "note": "Order placed"
+      }
+    ]
+  },
+  "95606330-aecd-4621-bbbc-bc1137745992": {
+    "id": "95606330-aecd-4621-bbbc-bc1137745992",
+    "username": "asdasd",
+    "items": [
+      {
+        "id": "78901",
+        "name": "LED",
+        "price": 20.27,
+        "imageUrl": "https://example.com/image78901.jpg",
+        "quantity": 2
+      },
+      {
+        "id": "67890",
+        "name": "Capacitor",
+        "price": 18.44,
+        "imageUrl": "https://example.com/image67890.jpg",
+        "quantity": 9
+      }
+    ],
+    "totalPrice": 206.5,
+    "status": "denied",
+    "timestamp": "2025-03-29T18:53:49.085Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:53:49.085Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "denied",
+        "timestamp": "2025-03-29T18:54:34.609Z",
+        "note": "Order denied"
+      }
+    ]
+  },
+  "c3fa3b2d-6513-444f-8417-9ae3ac80093f": {
+    "id": "c3fa3b2d-6513-444f-8417-9ae3ac80093f",
+    "username": "test2",
+    "items": [
+      {
+        "id": "67890",
+        "name": "Capacitor",
+        "price": 18.44,
+        "imageUrl": "https://example.com/image67890.jpg",
+        "quantity": 2
+      },
+      {
+        "id": "78901",
+        "name": "LED",
+        "price": 20.27,
+        "imageUrl": "https://example.com/image78901.jpg",
+        "quantity": 2
+      }
+    ],
+    "totalPrice": 77.42,
+    "status": "approved",
+    "timestamp": "2025-03-29T18:54:00.652Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:54:00.652Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "approved",
+        "timestamp": "2025-03-29T18:54:10.493Z",
+        "note": "Order approved"
+      }
+    ]
+  },
+  "1d16d20e-deaa-4487-8110-d3a7fd300735": {
+    "id": "1d16d20e-deaa-4487-8110-d3a7fd300735",
+    "username": "asd",
+    "items": [
+      {
+        "id": "12345",
+        "name": "Resistor",
+        "price": 6.53,
+        "imageUrl": "https://example.com/image12345.jpg",
+        "quantity": 6
+      }
+    ],
+    "totalPrice": 39.18,
+    "status": "denied",
+    "timestamp": "2025-03-29T18:55:09.824Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:55:09.824Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "denied",
+        "timestamp": "2025-03-29T18:55:40.632Z",
+        "note": "Order denied"
+      }
+    ]
+  },
+  "13ecc232-1289-4bce-a6d7-4cfa39bd3b0e": {
+    "id": "13ecc232-1289-4bce-a6d7-4cfa39bd3b0e",
+    "username": "adsa",
+    "items": [
+      {
+        "id": "12345",
+        "name": "Resistor",
+        "price": 6.53,
+        "imageUrl": "https://example.com/image12345.jpg",
+        "quantity": 5
+      }
+    ],
+    "totalPrice": 32.65,
+    "status": "approved",
+    "timestamp": "2025-03-29T18:55:19.723Z",
+    "statusHistory": [
+      {
+        "status": "pending",
+        "timestamp": "2025-03-29T18:55:19.723Z",
+        "note": "Order placed"
+      },
+      {
+        "status": "approved",
+        "timestamp": "2025-03-29T18:55:26.863Z",
+        "note": "Order approved"
+      }
+    ]
+  }
+}

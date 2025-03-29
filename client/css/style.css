@@ -1047,6 +1047,25 @@ input[type="password"] {
     max-width: 400px;
 }
 
+/* Stock status indicators in admin panel */
+.stock-warning {
+    background-color: #ffecec;
+}
+
+.stock-status {
+    font-weight: normal;
+    color: #ff6b6b;
+}
+
+.stock-status.oos {
+    font-weight: bold;
+    color: #ff3333;
+}
+
+.stock-status.low {
+    color: #ff6b6b;
+}
+
 /* Utility Components */
 .loading {
     text-align: center;
