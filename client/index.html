@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hackathon Hardware Store</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><a href="index.html">Hackathon Hardware Store</a></h1>
+      <nav>
+        <ul>
+          <li><a href="index.html" class="active">Store</a></li>
+          <li>
+            <a href="cart.html" class="cart-link">
+              Cart <span id="cart-count" class="cart-count">0</span>
+            </a>
+          </li>
+          <li><a href="order.html">Track Order</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="store-intro">
+      <h2>Hardware Components for Your Next Project</h2>
+      <p>Find everything you need for your hackathon project. Browse our selection of electronic components and hardware parts.</p>
+    </section>
+
+    <section class="product-container">
+      <div id="product-list" class="product-grid">
+        <!-- Products will be dynamically inserted here -->
+        <div class="loading">Loading products...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Hackathon Hardware Store</p>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+</body>
+</html>

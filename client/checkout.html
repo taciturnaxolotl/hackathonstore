@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | Hackathon Hardware Store</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><a href="index.html">Hackathon Hardware Store</a></h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Store</a></li>
+          <li>
+            <a href="cart.html" class="cart-link">
+              Cart <span id="cart-count" class="cart-count">0</span>
+            </a>
+          </li>
+          <li><a href="order.html">Track Order</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="checkout-container">
+      <h2>Checkout</h2>
+      
+      <div class="checkout-grid">
+        <div class="checkout-form-container">
+          <form id="checkout-form">
+            <div class="form-group">
+              <label for="username">Your Name or Team Name</label>
+              <input type="text" id="username" required placeholder="Enter your name or team name">
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="checkout-button" class="button checkout-button">Checkout</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="checkout-summary" class="checkout-summary">
+          <!-- Order summary will be dynamically inserted here -->
+          <div class="loading">Loading summary...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Hackathon Hardware Store</p>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+</body>
+</html>

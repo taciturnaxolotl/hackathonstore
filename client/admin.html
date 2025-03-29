@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Hackathon Hardware Store</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><a href="index.html">Hackathon Hardware Store</a></h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Store</a></li>
+          <li>
+            <a href="cart.html" class="cart-link">
+              Cart <span id="cart-count" class="cart-count">0</span>
+            </a>
+          </li>
+          <li><a href="order.html">Track Order</a></li>
+          <li><a href="admin.html" class="active">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="admin-container">
+      <h2>Admin Panel</h2>
+      
+      <!-- Login Form - shown when not authenticated -->
+      <div id="admin-login-container" class="admin-login-container">
+        <div class="admin-login-wrapper">
+          <h3>Admin Login</h3>
+          <form id="admin-login-form">
+            <div class="form-group">
+              <label for="admin-code">Admin Code</label>
+              <input type="password" id="admin-code" required placeholder="Enter admin code" autocomplete="new-password">
+            </div>
+            <button type="submit" class="button primary">Login</button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Order Management - shown when authenticated -->
+      <div id="admin-authenticated-container" class="admin-authenticated-container hidden">
+        <div class="admin-header">
+          <div class="admin-controls">
+            <form id="order-lookup-form" class="order-lookup-form">
+              <input type="text" id="order-id-input" placeholder="Search by Order ID">
+              <button type="submit" class="button">Look Up</button>
+            </form>
+            <button id="admin-logout" class="button secondary">Logout</button>
+          </div>
+          
+          <div class="admin-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total Orders:</span>
+              <span id="total-orders" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Pending:</span>
+              <span id="pending-orders" class="stat-value pending">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Approved:</span>
+              <span id="approved-orders" class="stat-value approved">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Denied:</span>
+              <span id="denied-orders" class="stat-value denied">0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="admin-main">
+          <div id="order-list-container" class="order-list-container">
+            <div class="order-list-header">
+              <h3>Orders</h3>
+              <button id="toggle-order-list" class="button mini">Show All Orders</button>
+            </div>
+            <ul id="order-list" class="order-list">
+              <!-- Order list will be dynamically inserted here -->
+              <li class="loading">Loading orders...</li>
+            </ul>
+          </div>
+          
+          <div id="order-details" class="order-details-container">
+            <!-- Order details will be dynamically inserted here -->
+            <div class="no-order-selected">
+              <h3>No Order Selected</h3>
+              <p>Enter an order ID above or select an order from the list to view details.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Hackathon Hardware Store</p>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

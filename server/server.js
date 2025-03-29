@@ -1,0 +1,363 @@
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
+const axios = require('axios');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const { v4: uuidv4 } = require('uuid');
+const qs = require('querystring');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// DigiKey API credentials
+const DIGIKEY_CLIENT_ID = 'GUnEKW6jrFrToZHkFoYrW3EOLfvKHtUI';
+const DIGIKEY_CLIENT_SECRET = 'Lp8xBSqpYUH2ZMw5';
+const DIGIKEY_API_URL = 'https://api.digikey.com';
+const TOKEN_URL = 'https://api.digikey.com/v1/oauth2/token';
+
+// DigiKey access token data
+let digikeyAccessToken = null;
+let tokenExpiry = null;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, '../client')));
+
+// Store data
+let allItems = [];
+let orders = {};
+
+// Function to get DigiKey access token
+async function getDigiKeyAccessToken() {
+  // Check if current token is still valid
+  if (digikeyAccessToken && tokenExpiry && new Date() < tokenExpiry) {
+    return digikeyAccessToken;
+  }
+
+  try {
+    console.log('Requesting new DigiKey access token...');
+    
+    const response = await axios.post(TOKEN_URL, qs.stringify({
+      client_id: DIGIKEY_CLIENT_ID,
+      client_secret: DIGIKEY_CLIENT_SECRET,
+      grant_type: 'client_credentials'
+    }), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    digikeyAccessToken = response.data.access_token;
+    // Set expiry time with a buffer of 5 minutes
+    tokenExpiry = new Date(Date.now() + (response.data.expires_in - 300) * 1000);
+    
+    console.log('DigiKey access token obtained successfully');
+    return digikeyAccessToken;
+  } catch (error) {
+    console.error('Error obtaining DigiKey access token:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Function to fetch product details from DigiKey API
+async function fetchDigiKeyProductDetails(partNumber) {
+  try {
+    const token = await getDigiKeyAccessToken();
+    
+    const response = await axios.get(`${DIGIKEY_API_URL}/products/v4/search/${partNumber}/productdetails`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-DIGIKEY-Client-Id': DIGIKEY_CLIENT_ID,
+        'X-DIGIKEY-Locale-Site': 'US',
+        'X-DIGIKEY-Locale-Language': 'en',
+        'X-DIGIKEY-Locale-Currency': 'USD'
+      }
+    });
+    
+    return response.data.Product;
+  } catch (error) {
+    console.error(`Error fetching DigiKey product details for ${partNumber}:`, 
+      error.response?.data?.detail || error.message);
+    return null;
+  }
+}
+
+// Load and parse CSV files
+async function loadData() {
+  console.log('Loading data from CSV files and Digikey API...');
+  
+  // Load custom items
+  const customItems = [];
+  await new Promise((resolve) => {
+    fs.createReadStream(path.join(__dirname, 'custom.csv'))
+      .pipe(csv())
+      .on('data', (row) => {
+        customItems.push({
+          id: row['part number'],
+          name: row.name,
+          description: row.description,
+          datasheet: row.datasheet,
+          manufacturer: row.manufacturer,
+          imageUrl: row['image url'],
+          type: 'custom',
+          price: (Math.random() * 20 + 5).toFixed(2), // Random price for custom items
+          stock: Math.floor(Math.random() * 100) + 10, // Random stock for custom items
+        });
+      })
+      .on('end', () => {
+        console.log(`Loaded ${customItems.length} custom items`);
+        resolve();
+      });
+  });
+
+  // Load Digikey items
+  const digikeyItems = [];
+  await new Promise((resolve) => {
+    fs.createReadStream(path.join(__dirname, 'digikey.csv'))
+      .pipe(csv())
+      .on('data', (row) => {
+        digikeyItems.push({
+          id: row.digikey_part_number,
+          price: parseFloat(row.price),
+          stock: parseInt(row.stock),
+          type: 'digikey'
+        });
+      })
+      .on('end', () => {
+        console.log(`Loaded ${digikeyItems.length} Digikey items`);
+        resolve();
+      });
+  });
+
+  // Try to load from cache first if available
+  let cachedData = null;
+  try {
+    const cacheFile = path.join(__dirname, 'items_cache.json');
+    if (fs.existsSync(cacheFile)) {
+      const cacheStats = fs.statSync(cacheFile);
+      // Use cache if it's less than 24 hours old
+      if ((Date.now() - cacheStats.mtimeMs) < 24 * 60 * 60 * 1000) {
+        console.log('Loading cached DigiKey product data...');
+        cachedData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      }
+    }
+  } catch (error) {
+    console.log('No valid cache found, will fetch fresh data');
+  }
+
+  // Process DigiKey items - either from cache or API
+  for (const item of digikeyItems) {
+    const cachedItem = cachedData?.find(cached => cached.id === item.id);
+    
+    if (cachedItem) {
+      // Use cached data but keep current price and stock
+      Object.assign(item, {
+        name: cachedItem.name,
+        description: cachedItem.description,
+        manufacturer: cachedItem.manufacturer,
+        datasheet: cachedItem.datasheet,
+        imageUrl: cachedItem.imageUrl
+      });
+      console.log(`Using cached data for DigiKey part ${item.id}`);
+    } else {
+      try {
+        console.log(`Fetching data for DigiKey part ${item.id}...`);
+        // Add delay between API calls to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const productDetails = await fetchDigiKeyProductDetails(item.id);
+        
+        if (productDetails) {
+          Object.assign(item, {
+            name: productDetails.ManufacturerProductNumber,
+            description: productDetails.Description?.ProductDescription || 'No description available',
+            manufacturer: productDetails.Manufacturer?.Name || 'DigiKey',
+            datasheet: productDetails.DatasheetUrl || '#',
+            imageUrl: productDetails.PhotoUrl || 'https://placeholder.com/150'
+          });
+          console.log(`Successfully fetched data for DigiKey part ${item.id}`);
+        } else {
+          // Fallback if API fails
+          Object.assign(item, {
+            name: `DigiKey Part ${item.id}`,
+            description: 'No description available',
+            manufacturer: 'DigiKey',
+            datasheet: '#',
+            imageUrl: 'https://placeholder.com/150'
+          });
+          console.log(`Using fallback data for DigiKey part ${item.id}`);
+        }
+      } catch (error) {
+        console.error(`Error processing DigiKey part ${item.id}:`, error.message);
+        // Add default data if API fails
+        Object.assign(item, {
+          name: `DigiKey Part ${item.id}`,
+          description: 'No description available',
+          manufacturer: 'Unknown',
+          datasheet: '#',
+          imageUrl: 'https://placeholder.com/150'
+        });
+      }
+    }
+  }
+
+  // Combine both types of items
+  allItems = [...customItems, ...digikeyItems];
+  
+  // Save to JSON files for quick access
+  fs.writeFileSync(
+    path.join(__dirname, 'items.json'),
+    JSON.stringify(allItems, null, 2)
+  );
+  
+  // Also update the cache
+  fs.writeFileSync(
+    path.join(__dirname, 'items_cache.json'),
+    JSON.stringify(digikeyItems, null, 2)
+  );
+  
+  console.log(`Total items loaded: ${allItems.length}`);
+
+  // Load existing orders if available
+  try {
+    const ordersData = fs.readFileSync(path.join(__dirname, 'orders.json'), 'utf8');
+    orders = JSON.parse(ordersData);
+    console.log(`Loaded ${Object.keys(orders).length} existing orders`);
+  } catch (error) {
+    console.log('No existing orders found, starting with empty orders');
+    orders = {};
+  }
+}
+
+// API Endpoints
+
+// Get all items
+app.get('/api/items', (req, res) => {
+  res.json(allItems);
+});
+
+// Get a specific item by ID
+app.get('/api/items/:id', (req, res) => {
+  const item = allItems.find(item => item.id === req.params.id);
+  if (item) {
+    res.json(item);
+  } else {
+    res.status(404).json({ error: 'Item not found' });
+  }
+});
+
+// Place an order
+app.post('/api/orders', (req, res) => {
+  const { username, cart } = req.body;
+  
+  if (!username || !cart || !Array.isArray(cart) || cart.length === 0) {
+    return res.status(400).json({ error: 'Invalid order data' });
+  }
+
+  // Generate order ID
+  const orderId = uuidv4();
+  
+  // Create order
+  const order = {
+    id: orderId,
+    username,
+    items: cart,
+    totalPrice: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    status: 'pending',
+    timestamp: new Date().toISOString(),
+    statusHistory: [
+      {
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+        note: 'Order placed'
+      }
+    ]
+  };
+  
+  // Save order
+  orders[orderId] = order;
+  saveOrders();
+  
+  res.status(201).json({ orderId, order });
+});
+
+// Get order by ID
+app.get('/api/orders/:id', (req, res) => {
+  const order = orders[req.params.id];
+  if (order) {
+    res.json(order);
+  } else {
+    res.status(404).json({ error: 'Order not found' });
+  }
+});
+
+// Update order status (admin only)
+app.put('/api/orders/:id', (req, res) => {
+  const { adminCode, status, note } = req.body;
+  const orderId = req.params.id;
+  
+  // Check admin code - in a real app, use proper authentication
+  if (adminCode !== 'hackathon2023') {
+    return res.status(403).json({ error: 'Invalid admin code' });
+  }
+  
+  const order = orders[orderId];
+  if (!order) {
+    return res.status(404).json({ error: 'Order not found' });
+  }
+  
+  if (status !== 'approved' && status !== 'denied') {
+    return res.status(400).json({ error: 'Status must be approved or denied' });
+  }
+  
+  // Update order status
+  order.status = status;
+  order.statusHistory.push({
+    status,
+    timestamp: new Date().toISOString(),
+    note: note || `Order ${status}`
+  });
+  
+  saveOrders();
+  
+  res.json({ success: true, order });
+});
+
+// Get all orders (admin only)
+app.get('/api/orders', (req, res) => {
+  const { adminCode } = req.query;
+  
+  // Check admin code - in a real app, use proper authentication
+  if (adminCode !== 'hackathon2023') {
+    return res.status(403).json({ error: 'Invalid admin code' });
+  }
+  
+  res.json(orders);
+});
+
+// Save orders to JSON file
+function saveOrders() {
+  fs.writeFileSync(
+    path.join(__dirname, 'orders.json'),
+    JSON.stringify(orders, null, 2)
+  );
+}
+
+// Start the server
+async function startServer() {
+  try {
+    await loadData();
+    
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

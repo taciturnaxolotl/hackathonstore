@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Cart | Hackathon Hardware Store</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><a href="index.html">Hackathon Hardware Store</a></h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Store</a></li>
+          <li>
+            <a href="cart.html" class="cart-link active">
+              Cart <span id="cart-count" class="cart-count">0</span>
+            </a>
+          </li>
+          <li><a href="order.html">Track Order</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="cart-container">
+      <h2>Your Cart</h2>
+      
+      <div id="cart-items" class="cart-items">
+        <!-- Cart items will be dynamically inserted here -->
+        <div class="loading">Loading cart...</div>
+      </div>
+
+      <div id="cart-summary" class="cart-summary">
+        <div class="summary-row">
+          <span>Total:</span>
+          <span id="cart-total">$0.00</span>
+        </div>
+        <div class="actions">
+          <a href="index.html" class="button secondary">Continue Shopping</a>
+          <button id="proceed-to-checkout" class="button primary">Checkout</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Hackathon Hardware Store</p>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+</body>
+</html>

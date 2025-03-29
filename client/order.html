@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Status | Hackathon Hardware Store</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><a href="index.html">Hackathon Hardware Store</a></h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Store</a></li>
+          <li>
+            <a href="cart.html" class="cart-link">
+              Cart <span id="cart-count" class="cart-count">0</span>
+            </a>
+          </li>
+          <li><a href="order.html" class="active">Track Order</a></li>
+          <li><a href="admin.html">Admin</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="order-container">
+      <h2>Order Status</h2>
+      
+      <div class="order-lookup">
+        <p>Enter your order ID to check status:</p>
+        <div class="order-lookup-form">
+          <input type="text" id="order-id-lookup" placeholder="Order ID">
+          <button id="lookup-order" class="button">Look Up</button>
+        </div>
+      </div>
+      
+      <div id="order-status" class="order-status">
+        <!-- Order status will be dynamically inserted here -->
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2023 Hackathon Hardware Store</p>
+    </div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+  <script>
+    // Initialize order lookup
+    document.addEventListener('DOMContentLoaded', () => {
+      const lookupButton = document.getElementById('lookup-order');
+      lookupButton?.addEventListener('click', () => {
+        const orderId = document.getElementById('order-id-lookup').value.trim();
+        if (orderId) {
+          window.location.href = `order.html?id=${orderId}`;
+        }
+      });
+      
+      // Check for order ID in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('id');
+      if (orderId) {
+        document.getElementById('order-id-lookup').value = orderId;
+      }
+    });
+  </script>
+</body>
+</html>
