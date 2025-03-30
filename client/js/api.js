@@ -98,6 +98,24 @@ const API = {
   },
 
   /**
+   * Get current stock for an item
+   * @param {string} itemId - Item ID
+   * @returns {Promise<Object>} Stock information
+   */
+  async getItemStock(itemId) {
+    try {
+      const response = await fetch(`${this.BASE_URL}/items/${itemId}/stock`);
+      if (!response.ok) {
+        throw new Error(`Failed to get stock for item: ${itemId}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching stock for item ${itemId}:`, error);
+      return { id: itemId, stock: 0 };
+    }
+  },
+
+  /**
    * Gets order details by order ID
    * @param {string} orderId - The order ID
    * @returns {Promise<Object>} Order details

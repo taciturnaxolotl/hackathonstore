@@ -126,10 +126,47 @@ const Store = {
   async loadProducts() {
     try {
       this.items = await API.getItems();
+      
+      // Update stock cache with fresh data
+      this.items.forEach(item => {
+        this.stockCache[item.id] = item.stock;
+      });
+      
+      // Update quantities in cart if they exceed available stock
+      this.validateCartStock();
     } catch (error) {
       console.error('Failed to load products:', error);
       this.items = [];
       throw error;
+    }
+  },
+
+  /**
+   * Validate all cart items against current stock levels
+   */
+  validateCartStock() {
+    let hasAdjustments = false;
+    
+    this.cart.forEach(item => {
+      const currentStock = this.stockCache[item.id] || 0;
+      
+      // If cart quantity exceeds available stock
+      if (item.quantity > currentStock) {
+        // Log the adjustment
+        console.warn(`Adjusting quantity for ${item.name}: requested ${item.quantity}, available ${currentStock}`);
+        
+        // Set to available stock (or 0 if no stock)
+        item.quantity = Math.max(0, currentStock);
+        hasAdjustments = true;
+      }
+    });
+    
+    // Remove items with zero quantity
+    this.cart = this.cart.filter(item => item.quantity > 0);
+    
+    if (hasAdjustments) {
+      this.saveCart();
+      this.showError('Some items in your cart have been adjusted due to stock limitations.');
     }
   },
 
@@ -187,38 +224,33 @@ const Store = {
     // Check if item is already in cart
     const existingItem = this.cart.find(cartItem => cartItem.id === item.id);
     
-    // Keep track of current stock in cache
-    if (!this.stockCache[item.id]) {
-      this.stockCache[item.id] = item.stock;
+    // Get latest stock information
+    const currentStock = item.stock;
+    
+    // Update stock cache
+    this.stockCache[item.id] = currentStock;
+    
+    // Calculate how many more we can add
+    const canAdd = existingItem ? 
+      Math.max(0, currentStock - existingItem.quantity) : 
+      currentStock;
+    
+    if (canAdd <= 0) {
+      this.showError(`Sorry, ${item.name} is out of stock or maximum quantity reached.`);
+      return;
     }
     
-    const currentStock = this.stockCache[item.id];
-    
     if (existingItem) {
-      // Check if adding one more would exceed stock
-      if (existingItem.quantity >= currentStock) {
-        this.showError(`Sorry, only ${currentStock} units of "${item.name}" are available.`);
-        return;
-      }
       existingItem.quantity += 1;
     } else {
-      // Check if item is in stock
-      if (currentStock < 1) {
-        this.showError(`Sorry, "${item.name}" is out of stock.`);
-        return;
-      }
       this.cart.push({
         id: item.id,
         name: item.name,
         price: parseFloat(item.price),
         imageUrl: item.imageUrl,
-        stock: currentStock, // Store stock info with cart item
         quantity: 1
       });
     }
-    
-    // Update stock cache
-    this.stockCache[item.id] = currentStock - 1;
     
     // Save cart to local storage
     this.saveCart();
@@ -252,9 +284,9 @@ const Store = {
     const item = this.cart.find(item => item.id === itemId);
     if (!item) return;
     
-    // Find matching item in our items list to get current stock
+    // Check latest stock
     const productItem = this.items.find(product => product.id === itemId);
-    let maxStock = item.stock; // Use cached stock from cart if available
+    let maxStock = this.stockCache[itemId] || 0;
     
     // If we have fresh stock data from the items array, use that
     if (productItem) {
@@ -263,19 +295,16 @@ const Store = {
       this.stockCache[itemId] = maxStock;
     }
     
-    // Make sure the requested quantity doesn't exceed available stock
-    quantity = Math.min(quantity, maxStock);
+    // Ensure requested quantity is valid
+    const newQuantity = Math.min(Math.max(1, quantity), maxStock);
     
-    // Ensure quantity is at least 1
-    quantity = Math.max(1, quantity);
-    
-    // If trying to increase beyond available stock
-    if (quantity > maxStock) {
+    // Check if we hit the stock limit
+    if (newQuantity < quantity) {
       this.showError(`Sorry, only ${maxStock} units of "${item.name}" are available.`);
-      quantity = maxStock;
     }
     
-    item.quantity = quantity;
+    // Update the quantity
+    item.quantity = newQuantity;
     this.saveCart();
     
     // If on cart page, re-render the cart
@@ -454,14 +483,33 @@ const Store = {
     }
     
     try {
-      // Check stock availability first
+      // Verify stock availability first
       const stockCheck = await API.checkStock(this.cart);
       
       if (!stockCheck.valid) {
+        const issues = stockCheck.stockIssues;
         let errorMessage = 'Some items in your cart are no longer available in the requested quantities:';
-        stockCheck.stockIssues.forEach(issue => {
+        
+        issues.forEach(issue => {
           errorMessage += `\n• ${issue.name}: Requested: ${issue.requested}, Available: ${issue.available}`;
+          
+          // Update stock cache with the new information
+          this.stockCache[issue.id] = issue.available;
+          
+          // Update cart items to match available stock
+          const cartItem = this.cart.find(item => item.id === issue.id);
+          if (cartItem) {
+            cartItem.quantity = Math.min(cartItem.quantity, issue.available);
+          }
         });
+        
+        // Save the updated cart
+        this.saveCart();
+        
+        // Re-render the cart page if we're on it
+        if (document.getElementById('cart-items')) {
+          this.renderCart();
+        }
         
         this.showError(errorMessage);
         
@@ -486,7 +534,9 @@ const Store = {
       window.location.href = `order.html?id=${result.orderId}`;
       
     } catch (error) {
-      this.showError('Failed to place order: ' + error.message);
+      const errorMessage = error.message || 'Failed to place order';
+      this.showError(errorMessage);
+      
       if (checkoutButton) {
         checkoutButton.disabled = false;
         checkoutButton.innerHTML = 'Checkout';

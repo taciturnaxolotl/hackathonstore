@@ -283,17 +283,26 @@ function checkOrderStock(order) {
  * @param {Object} order - The order to reserve stock for
  */
 function reserveStock(order) {
+  // Verify stock is available before processing
+  const stockCheck = checkOrderStock(order);
+  if (!stockCheck.valid) {
+    console.error('Cannot reserve stock: insufficient quantities', stockCheck.stockIssues);
+    return false;
+  }
+
+  // Update inventory
   for (const orderItem of order.items) {
     const product = allItems.find(item => item.id === orderItem.id);
     if (product) {
       product.stock -= orderItem.quantity;
+      // Ensure we don't have negative stock (safeguard)
+      if (product.stock < 0) product.stock = 0;
     }
   }
+
   // Save updated stock to persistent storage
-  fs.writeFileSync(
-    path.join(__dirname, 'items.json'),
-    JSON.stringify(allItems, null, 2)
-  );
+  saveInventory();
+  return true;
 }
 
 /**
@@ -307,11 +316,27 @@ function returnStock(order) {
       product.stock += orderItem.quantity;
     }
   }
+  
   // Save updated stock to persistent storage
-  fs.writeFileSync(
-    path.join(__dirname, 'items.json'),
-    JSON.stringify(allItems, null, 2)
-  );
+  saveInventory();
+  return true;
+}
+
+/**
+ * Save inventory to JSON file
+ */
+function saveInventory() {
+  try {
+    fs.writeFileSync(
+      path.join(__dirname, 'items.json'),
+      JSON.stringify(allItems, null, 2)
+    );
+    console.log('Inventory saved successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to save inventory:', error);
+    return false;
+  }
 }
 
 // Get all items
@@ -324,6 +349,16 @@ app.get(`${API_PREFIX}/items/:id`, (req, res) => {
   const item = allItems.find(item => item.id === req.params.id);
   if (item) {
     res.json(item);
+  } else {
+    res.status(404).json({ error: 'Item not found' });
+  }
+});
+
+// Get current stock for a specific item (new endpoint)
+app.get(`${API_PREFIX}/items/:id/stock`, (req, res) => {
+  const item = allItems.find(item => item.id === req.params.id);
+  if (item) {
+    res.json({ id: item.id, stock: item.stock });
   } else {
     res.status(404).json({ error: 'Item not found' });
   }
@@ -403,6 +438,17 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
     return res.status(400).json({ error: 'Status must be approved or denied' });
   }
   
+  // Don't reprocess orders that are already in this status
+  if (order.status === status) {
+    return res.status(400).json({ error: `Order is already ${status}` });
+  }
+
+  // If order was previously approved and is now being denied, 
+  // we need to return stock first
+  if (order.status === 'approved' && status === 'denied') {
+    returnStock(order);
+  }
+  
   // Check stock again before approving
   if (status === 'approved') {
     const stockCheck = checkOrderStock(order);
@@ -412,7 +458,15 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
         stockIssues: stockCheck.stockIssues
       });
     }
+
+    // Reserve stock
+    if (!reserveStock(order)) {
+      return res.status(500).json({ error: 'Failed to reserve inventory' });
+    }
   }
+  
+  // Keep track of previous status before updating
+  const previousStatus = order.status;
   
   // Update order status
   order.status = status;
@@ -422,16 +476,13 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
     note: note || `Order ${status}`
   });
   
-  // Manage stock based on status change
-  if (status === 'approved') {
-    reserveStock(order);
-  } else if (status === 'denied' && order.status === 'pending') {
-    // No need to return stock for denied orders since we're not reserving on order creation
-  }
-  
   saveOrders();
   
-  res.json({ success: true, order });
+  res.json({ 
+    success: true, 
+    order,
+    previousStatus
+  });
 });
 
 // Get all orders (admin only)
@@ -455,7 +506,13 @@ app.post(`${API_PREFIX}/check-stock`, (req, res) => {
   }
 
   // Create a temporary order-like object just for stock checking
-  const tempOrder = { items: cart };
+  const tempOrder = { 
+    items: cart.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      name: item.name || 'Unknown item'
+    }))
+  };
   
   // Check stock availability
   const stockCheck = checkOrderStock(tempOrder);
