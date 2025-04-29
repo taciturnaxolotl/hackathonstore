@@ -1,6 +1,36 @@
-/* Hackathon Hardware Store - Intentionally scrappy but functional style */
-
 /* Base Styles */
+@font-face {
+    font-family: 'Berkeley Mono';
+    src: url('../fonts/BerkeleyMono-Regular.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Berkeley Mono';
+    src: url('../fonts/BerkeleyMono-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Berkeley Mono';
+    src: url('../fonts/BerkeleyMono-Oblique.woff2') format('woff2');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Berkeley Mono';
+    src: url('../fonts/BerkeleyMono-Bold-Oblique.woff2') format('woff2');
+    font-weight: bold;
+    font-style: italic;
+    font-display: swap;
+}
+
 :root {
     --primary-color: #ff3e00;
     --secondary-color: #40b3ff;
@@ -11,7 +41,7 @@
     --warning-color: #ff9800;
     --error-color: #f44336;
     --pending-color: #ffeb3b;
-    --font-stack: "Courier New", Courier, monospace;
+    --font-stack: "Berkeley Mono", monospace;
     --container-width: 1200px;
 }
 
