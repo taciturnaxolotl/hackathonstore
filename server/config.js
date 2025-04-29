@@ -2,6 +2,7 @@
  * Configuration module for the Hackathon Hardware Store Server
  * Loads environment variables from .env file
  */
+
 require('dotenv').config();
 
 const config = {
