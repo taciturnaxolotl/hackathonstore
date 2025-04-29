@@ -44,8 +44,7 @@ node server.js # simple node command
 
 ### 4. Access the application
 
-- Store: `http://localhost:3000/client/index.html`
-- Admin: `http://localhost:3000/client/admin.html` (use your ADMIN_CODE)
+To access the app host it somewhere, the server has CORS.
 
 ## Configuration
 
