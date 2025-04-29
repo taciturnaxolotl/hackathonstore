@@ -1,5 +1,7 @@
 # hackathonstore
 
+**Current version: 2.0.0**
+
 An organizer-managed inventory and stock management system for hardware-focused hackathons.
 
 ## What is it?
