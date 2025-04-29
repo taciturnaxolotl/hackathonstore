@@ -2,6 +2,7 @@
  * Store Module for Hackathon Hardware Store
  * Manages products display, cart functionality, and checkout process
  */
+import API from './api.js';
 
 const Store = {
   // Store state
@@ -600,3 +601,5 @@ const Store = {
 document.addEventListener('DOMContentLoaded', () => {
   Store.init();
 });
+
+export default Store;

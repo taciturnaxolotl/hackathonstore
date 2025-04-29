@@ -2,6 +2,8 @@
  * Admin Module for Hackathon Hardware Store
  * Handles order management, authentication, and admin operations
  */
+import API from './api.js';
+import Config from './config.js';
 
 const Admin = {
   // Admin state
@@ -611,3 +613,5 @@ const Admin = {
 document.addEventListener('DOMContentLoaded', () => {
   Admin.init();
 });
+
+export default Admin;

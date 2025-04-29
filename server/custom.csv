@@ -1,6 +1,2 @@
-part number,name,description,datasheet,manufacturer,image url,stock
-12345,Resistor,1k Ohm Resistor,https://example.com/datasheet12345,OhmCorp,https://example.com/image12345.jpg,10
-67890,Capacitor,10uF Capacitor,https://example.com/datasheet67890,CapacitorInc,https://example.com/image67890.jpg,20
-11223,Diode,1N4007 Diode,https://example.com/datasheet11223,DiodeTech,https://example.com/image11223.jpg,30
-44556,Transistor,BC547 Transistor,https://example.com/datasheet44556,TransistorWorks,https://example.com/image44556.jpg,40
-78901,LED,Red LED,https://example.com/datasheet78901,LightCorp,https://example.com/image78901.jpg,5
+part number,name,description,datasheet,manufacturer,image url,stock,price
+707-7666,RS PRO 1kΩ Carbon Film Resistor 0.25W ±5%,N/A,https://docs.rs-online.com/0c4b/A700000008919910.pdf,RS Components Ltd.,https://media.rs-online.com/t_large/F7077666-01.jpg,123,1.23

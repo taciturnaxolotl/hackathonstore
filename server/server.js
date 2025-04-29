@@ -7,15 +7,16 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const qs = require('querystring');
+const config = require('./config');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.PORT;
 
-// DigiKey API credentials
-const DIGIKEY_CLIENT_ID = 'GUnEKW6jrFrToZHkFoYrW3EOLfvKHtUI';
-const DIGIKEY_CLIENT_SECRET = 'Lp8xBSqpYUH2ZMw5';
-const DIGIKEY_API_URL = 'https://api.digikey.com';
-const TOKEN_URL = 'https://api.digikey.com/v1/oauth2/token';
+// DigiKey API credentials from config
+const DIGIKEY_CLIENT_ID = config.digikey.CLIENT_ID;
+const DIGIKEY_CLIENT_SECRET = config.digikey.CLIENT_SECRET;
+const DIGIKEY_API_URL = config.digikey.API_URL;
+const TOKEN_URL = config.digikey.TOKEN_URL;
 
 // DigiKey access token data
 let digikeyAccessToken = null;
@@ -95,10 +96,22 @@ async function loadData() {
   
   // Load custom items
   const customItems = [];
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
+    let lineCounter = 1; // Header is line 1
     fs.createReadStream(path.join(__dirname, 'custom.csv'))
       .pipe(csv())
       .on('data', (row) => {
+        lineCounter++;
+        
+        // Validate required fields
+        if (!row.price) {
+          throw new Error(`Missing price for item ${row['part number']} at line ${lineCounter} in custom.csv`);
+        }
+        
+        if (!row.stock) {
+          throw new Error(`Missing stock for item ${row['part number']} at line ${lineCounter} in custom.csv`);
+        }
+        
         customItems.push({
           id: row['part number'],
           name: row.name,
@@ -107,9 +120,13 @@ async function loadData() {
           manufacturer: row.manufacturer,
           imageUrl: row['image url'],
           type: 'custom',
-          price: parseFloat(row.price || (Math.random() * 20 + 5).toFixed(2)), // Use CSV price if available, otherwise random
-          stock: parseInt(row.stock) || Math.floor(Math.random() * 100) + 10, // Use CSV stock if available, otherwise random
+          price: parseFloat(row.price),
+          stock: parseInt(row.stock),
         });
+      })
+      .on('error', (error) => {
+        console.error('Error processing custom.csv:', error.message);
+        reject(error);
       })
       .on('end', () => {
         console.log(`Loaded ${customItems.length} custom items`);
@@ -119,16 +136,32 @@ async function loadData() {
 
   // Load Digikey items
   const digikeyItems = [];
-  await new Promise((resolve) => {
+  await new Promise((resolve, reject) => {
+    let lineCounter = 1; // Header is line 1
     fs.createReadStream(path.join(__dirname, 'digikey.csv'))
       .pipe(csv())
       .on('data', (row) => {
+        lineCounter++;
+        
+        // Validate required fields
+        if (!row.price) {
+          throw new Error(`Missing price for item ${row.digikey_part_number} at line ${lineCounter} in digikey.csv`);
+        }
+        
+        if (!row.stock) {
+          throw new Error(`Missing stock for item ${row.digikey_part_number} at line ${lineCounter} in digikey.csv`);
+        }
+        
         digikeyItems.push({
           id: row.digikey_part_number,
           price: parseFloat(row.price),
           stock: parseInt(row.stock),
           type: 'digikey'
         });
+      })
+      .on('error', (error) => {
+        console.error('Error processing digikey.csv:', error.message);
+        reject(error);
       })
       .on('end', () => {
         console.log(`Loaded ${digikeyItems.length} Digikey items`);
@@ -180,7 +213,7 @@ async function loadData() {
             description: productDetails.Description?.ProductDescription || 'No description available',
             manufacturer: productDetails.Manufacturer?.Name || 'DigiKey',
             datasheet: productDetails.DatasheetUrl || '#',
-            imageUrl: productDetails.PhotoUrl || 'https://placeholder.com/150'
+            imageUrl: productDetails.PhotoUrl || 'img/placeholder.svg'
           });
           console.log(`Successfully fetched data for DigiKey part ${item.id}`);
         } else {
@@ -190,7 +223,7 @@ async function loadData() {
             description: 'No description available',
             manufacturer: 'DigiKey',
             datasheet: '#',
-            imageUrl: 'https://placeholder.com/150'
+            imageUrl: 'img/placeholder.svg'
           });
           console.log(`Using fallback data for DigiKey part ${item.id}`);
         }
@@ -202,7 +235,7 @@ async function loadData() {
           description: 'No description available',
           manufacturer: 'Unknown',
           datasheet: '#',
-          imageUrl: 'https://placeholder.com/150'
+          imageUrl: 'img/placeholder.svg'
         });
       }
     }
@@ -236,8 +269,8 @@ async function loadData() {
   }
 }
 
-// API Endpoints - Update paths with /hackathon prefix
-const API_PREFIX = '/hackathon';
+// API Endpoints - Update paths with config prefix
+const API_PREFIX = config.API_PREFIX;
 
 // Add these functions for inventory management
 
@@ -364,7 +397,7 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
   const orderId = req.params.id;
   
   // Check admin code - in a real app, use proper authentication
-  if (adminCode !== 'hackathon2023') {
+  if (adminCode !== config.ADMIN_CODE) {
     return res.status(403).json({ error: 'Invalid admin code' });
   }
   
@@ -407,7 +440,7 @@ app.get(`${API_PREFIX}/orders`, (req, res) => {
   const { adminCode } = req.query;
   
   // Check admin code - in a real app, use proper authentication
-  if (adminCode !== 'hackathon2023') {
+  if (adminCode !== config.ADMIN_CODE) {
     return res.status(403).json({ error: 'Invalid admin code' });
   }
   

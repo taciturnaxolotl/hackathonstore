@@ -2,10 +2,11 @@
  * API Client for Hackathon Store
  * Handles all communication with the server
  */
+import Config from './config.js';
 
 const API = {
-  // Base URL updated for the external API endpoint through Caddy
-  BASE_URL: 'https://api.viruus.zip/hackathon',
+  // Base URL from config module
+  BASE_URL: Config.get('API_BASE_URL'),
 
   /**
    * Fetches all items from the store
@@ -136,3 +137,6 @@ const API = {
     }
   }
 };
+
+// Export the API as a default export
+export default API;
