@@ -20,6 +20,13 @@ const config = {
   
   // Admin Authentication - No default for security
   ADMIN_CODE: process.env.ADMIN_CODE,
+
+  // Web Push Notification Configuration
+  webpush: {
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    CONTACT_EMAIL: process.env.CONTACT_EMAIL || 'example@yourdomain.org',
+  }
 };
 
 // Validate that required config values are present

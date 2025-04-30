@@ -7,6 +7,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const qs = require('querystring');
+const webpush = require('web-push');
 const config = require('./config');
 
 const app = express();
@@ -17,6 +18,32 @@ const DIGIKEY_CLIENT_ID = config.digikey.CLIENT_ID;
 const DIGIKEY_CLIENT_SECRET = config.digikey.CLIENT_SECRET;
 const DIGIKEY_API_URL = config.digikey.API_URL;
 const TOKEN_URL = config.digikey.TOKEN_URL;
+
+// Web Push configuration
+const vapidKeys = {
+  publicKey: config.webpush.VAPID_PUBLIC_KEY,
+  privateKey: config.webpush.VAPID_PRIVATE_KEY
+};
+
+// If VAPID keys are not set, generate them as fallback
+if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
+  console.warn('VAPID keys not found in configuration! Generating temporary keys...');
+  const generatedKeys = webpush.generateVAPIDKeys();
+  vapidKeys.publicKey = generatedKeys.publicKey;
+  vapidKeys.privateKey = generatedKeys.privateKey;
+  
+  console.log('Generated VAPID Keys:');
+  console.log('Public Key:', vapidKeys.publicKey);
+  console.log('Private Key:', vapidKeys.privateKey);
+  console.log('Please add these to your .env file for better security');
+}
+
+// Configure web-push
+webpush.setVapidDetails(
+  'mailto:' + config.webpush.CONTACT_EMAIL,
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
 
 // DigiKey access token data
 let digikeyAccessToken = null;
@@ -34,6 +61,9 @@ app.use(bodyParser.json());
 // Store data
 let allItems = [];
 let orders = {};
+
+// Store push subscriptions
+let pushSubscriptions = {};
 
 // Function to get DigiKey access token
 async function getDigiKeyAccessToken() {
@@ -326,6 +356,110 @@ function returnStock(order) {
   );
 }
 
+// Push notification endpoints
+app.get(`${API_PREFIX}/notifications/vapid-public-key`, (req, res) => {
+  res.json({ publicKey: vapidKeys.publicKey });
+});
+
+app.post(`${API_PREFIX}/notifications/register`, (req, res) => {
+  const { orderId, username, subscription } = req.body;
+  
+  if (!orderId || !subscription) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  try {
+    // Store the subscription for this order
+    pushSubscriptions[orderId] = {
+      username: username || 'Anonymous',
+      subscription,
+      registeredAt: new Date().toISOString()
+    };
+    
+    // Save subscriptions to file
+    saveSubscriptions();
+    
+    // Send an initial notification to confirm registration
+    const payload = JSON.stringify({
+      title: 'Notifications Enabled',
+      body: `You'll receive updates about order #${orderId}`,
+      orderId
+    });
+    
+    webpush.sendNotification(subscription, payload)
+      .catch(error => console.error('Error sending test notification:', error));
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error registering subscription:', error);
+    res.status(500).json({ error: 'Failed to register for notifications' });
+  }
+});
+
+// Send push notification based on order status
+function sendOrderNotification(orderId, status, note) {
+  const subscription = pushSubscriptions[orderId]?.subscription;
+  if (!subscription) {
+    return;
+  }
+  
+  let title, body;
+  
+  if (status === 'approved') {
+    title = `Order #${orderId.slice(0, 8)} Approved! 🎉`;
+    body = note || 'Your order has been approved and will be prepared soon.';
+  } else if (status === 'denied') {
+    title = `Order #${orderId.slice(0, 8)} Denied`;
+    // Use the provided note as the reason if available, otherwise use a generic message
+    body = note ? `Reason: ${note}` : 'Your order has been denied.';
+  } else {
+    title = `Order #${orderId.slice(0, 8)} Updated`;
+    body = note || `Your order status is now: ${status}`;
+  }
+  
+  const payload = JSON.stringify({
+    title,
+    body,
+    orderId,
+    url: `/client/order.html?id=${orderId}`
+  });
+  
+  webpush.sendNotification(subscription, payload)
+    .then(() => {
+      console.log(`Notification sent for order ${orderId}`);
+    })
+    .catch(error => {
+      console.error(`Error sending notification for order ${orderId}:`, error);
+      
+      // If subscription is no longer valid, remove it
+      if (error.statusCode === 410) {
+        console.log(`Removing invalid subscription for order ${orderId}`);
+        delete pushSubscriptions[orderId];
+        saveSubscriptions();
+      }
+    });
+}
+
+// Save subscriptions to file
+function saveSubscriptions() {
+  fs.writeFileSync(
+    path.join(__dirname, 'subscriptions.json'),
+    JSON.stringify(pushSubscriptions, null, 2)
+  );
+}
+
+// Load subscriptions from file
+function loadSubscriptions() {
+  try {
+    const data = fs.readFileSync(path.join(__dirname, 'subscriptions.json'), 'utf8');
+    pushSubscriptions = JSON.parse(data);
+    console.log(`Loaded ${Object.keys(pushSubscriptions).length} push subscriptions`);
+  } catch (error) {
+    console.log('No subscription data found, starting with empty subscriptions');
+    pushSubscriptions = {};
+  }
+}
+
 // Get all items
 app.get(`${API_PREFIX}/items`, (req, res) => {
   res.json(allItems);
@@ -432,6 +566,9 @@ app.put(`${API_PREFIX}/orders/:id`, (req, res) => {
   
   saveOrders();
   
+  // Send push notification if user registered for notifications
+  sendOrderNotification(orderId, status, note);
+  
   res.json({ success: true, order });
 });
 
@@ -459,6 +596,7 @@ function saveOrders() {
 async function startServer() {
   try {
     await loadData();
+    loadSubscriptions(); // Load stored push subscriptions
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

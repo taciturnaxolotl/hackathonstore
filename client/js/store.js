@@ -3,6 +3,7 @@
  * Manages products display, cart functionality, and checkout process
  */
 import API from './api.js';
+import Notifications from './notifications.js';
 
 const Store = {
   // Store state
@@ -27,6 +28,13 @@ const Store = {
       this.initCheckoutPage();
     } else if (document.getElementById('order-status')) {
       this.initOrderPage();
+    }
+
+    // Initialize notifications if supported
+    if (document.getElementById('checkout-form') || document.getElementById('order-status')) {
+      Notifications.init().catch(error => {
+        console.log('Notification initialization failed:', error);
+      });
     }
   },
 
@@ -370,8 +378,50 @@ const Store = {
     }
     
     try {
+      // Check if notifications are enabled
+      const notificationsConsent = document.getElementById('notifications-consent');
+      let notificationsEnabled = false;
+      let permissionGranted = false;
+
+      // If user consented to notifications, request permission before proceeding
+      if (notificationsConsent && notificationsConsent.checked) {
+        try {
+          this.showLoading(true);
+          
+          // Request notification permission and wait for user response
+          const permission = await Notifications.requestPermission();
+          permissionGranted = (permission === 'granted');
+          
+          if (permissionGranted) {
+            notificationsEnabled = true;
+            // Subscribe to push notifications
+            await Notifications.subscribeToPush();
+          } else if (permission === 'denied') {
+            // If user explicitly denied permission, show a message but continue with order
+            console.log('Notification permission denied');
+          }
+          
+          this.showLoading(false);
+        } catch (notificationError) {
+          console.error('Error requesting notification permission:', notificationError);
+          this.showLoading(false);
+          // Continue with checkout even if notification permission request fails
+        }
+      }
+      
       // Send order to server
       const result = await API.placeOrder(username, this.cart);
+      
+      // Register for notifications if enabled and permission granted
+      if (notificationsEnabled && permissionGranted) {
+        try {
+          await Notifications.registerOrder(result.orderId, username);
+          this.showSuccess('Notifications enabled for order updates');
+        } catch (notificationError) {
+          console.error('Failed to register for notifications:', notificationError);
+          // Continue checkout even if notification registration fails
+        }
+      }
       
       // Clear cart after successful order
       this.cart = [];
@@ -562,6 +612,33 @@ const Store = {
       errorElement.classList.remove('show');
       setTimeout(() => {
         errorElement.remove();
+      }, 300);
+    }, 5000);
+  },
+
+  /**
+   * Show success message
+   * @param {string} message - Success message to display
+   */
+  showSuccess(message) {
+    const successElement = document.createElement('div');
+    successElement.className = 'success-toast';
+    successElement.innerHTML = `
+      <div class="toast-icon success">✓</div>
+      <div class="toast-message">${message}</div>
+    `;
+    document.body.appendChild(successElement);
+    
+    // Fade in
+    setTimeout(() => {
+      successElement.classList.add('show');
+    }, 10);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+      successElement.classList.remove('show');
+      setTimeout(() => {
+        successElement.remove();
       }, 300);
     }, 5000);
   },
