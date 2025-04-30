@@ -40,7 +40,13 @@ const Notifications = {
    */
   async registerServiceWorker() {
     try {
-      const registration = await navigator.serviceWorker.register('/client/sw.js');
+      // Determine if we're in development or production based on hostname
+      const isLocalDev = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+      
+      // In local development, sw.js is in the client folder, but in production it might be at the root
+      const swPath = isLocalDev ? '/client/sw.js' : '/sw.js';
+      
+      const registration = await navigator.serviceWorker.register(swPath);
       console.log('Service worker registered:', registration);
       return registration;
     } catch (error) {

@@ -11,21 +11,24 @@ self.addEventListener('install', (event) => {
   console.log('Service Worker installed');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      // We'll use relative paths which will work correctly within the registration scope
       return cache.addAll([
-        '/client/',
-        '/client/index.html',
-        '/client/cart.html',
-        '/client/checkout.html',
-        '/client/order.html',
-        '/client/admin.html',
-        '/client/css/style.css',
-        '/client/js/config.js',
-        '/client/js/api.js',
-        '/client/js/store.js',
-        '/client/js/admin.js',
-        '/client/js/notifications.js',
-        '/client/img/placeholder.svg'
+        './', // Root relative to where the SW is registered
+        './index.html',
+        './cart.html',
+        './checkout.html',
+        './order.html',
+        './admin.html',
+        './css/style.css',
+        './js/config.js',
+        './js/api.js',
+        './js/store.js',
+        './js/admin.js',
+        './js/notifications.js',
+        './img/placeholder.svg'
       ]);
+    }).catch(error => {
+      console.error('Cache addAll error:', error);
     })
   );
 });
@@ -40,6 +43,7 @@ self.addEventListener('activate', (event) => {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
+          return Promise.resolve(); // Explicitly return a resolved promise for non-matching cases
         })
       );
     })
@@ -62,10 +66,10 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Order Update';
     const options = {
       body: data.body || 'Your order status has been updated.',
-      icon: '/client/img/notification-icon.png',
-      badge: '/client/img/notification-badge.png',
+      icon: './img/notification-icon.png',
+      badge: './img/notification-badge.png',
       data: {
-        url: data.url || '/client/order.html?id=' + data.orderId
+        url: data.url || './order.html?id=' + data.orderId
       }
     };
 
@@ -81,7 +85,8 @@ self.addEventListener('notificationclick', (event) => {
   
   event.notification.close();
 
-  const url = event.notification.data.url || '/client/order.html';
+  // Use relative URL paths based on the scope
+  const url = event.notification.data.url || './order.html';
   
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((windowClients) => {
