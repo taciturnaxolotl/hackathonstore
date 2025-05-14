@@ -1,112 +1,95 @@
 # hackathonstore
 
-**Current version: 2.0.0**
+**Version 2.1.0**
 
-An organizer-managed inventory and stock management system for hardware-focused hackathons.
+A lightweight inventory and request management system for hardware-focused hackathons, built with Bun.
 
-## What is it?
+## Overview
 
-hackathonstore helps hackathon organizers manage hardware components and allows participants to browse and request items for their projects. The system tracks inventory in real-time and provides a simple approval workflow.
+hackathonstore helps hackathon organizers manage hardware components while allowing participants to browse and request items for their projects with real-time inventory tracking.
 
-## Features
+## Key Features
 
-- Browse hardware components with images, descriptions and datasheets
-- Request items through a simple cart checkout process
-- Track order status (pending, approved, denied)
-- Admin panel for organizers to approve/deny requests
-- DigiKey API integration for component data
-- Simple setup with environment variables
+- Component browsing with images, descriptions and datasheets
+- Order placement through simple cart interface
+- Order status tracking and notifications
+- Admin approval workflow
+- DigiKey API integration (optional)
+- Optimized with Bun's native server
 
-## Quick Setup
+## Quick Start
 
-### 1. Clone and install
+### Prerequisites
+
+- [Bun](https://bun.sh/) runtime installed
+
+### Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/dropalltables/hackathonstore.git
-cd hackathonstore/server
-npm install
-```
+cd hackathonstore
 
-### 2. Configure the server
+# Install dependencies
+bun install
 
-```bash
+# Copy and configure environment variables
 cp .env.example .env
-# Edit .env with your settings (see Configuration section)
+# Edit .env with your settings
 ```
 
-### 3. Start the server
+### Starting the Server
 
 ```bash
-npm start # using npm
-```
-Or:
-```bash
-node server.js # simple node command
+bun start
 ```
 
-### 4. Access the application
-
-To access the app host it somewhere, the server has CORS.
+The server will be available at http://localhost:3000 (or your configured port).
 
 ## Configuration
 
-### Server (.env)
+Create a `.env` file with these variables:
 
 ```
 # Server settings
 PORT=3000
-API_PREFIX=/hackathon
+API_PREFIX=/api
 
-# DigiKey API (optional)
+# DigiKey API (optional for component data enrichment)
 DIGIKEY_CLIENT_ID=your_key
 DIGIKEY_CLIENT_SECRET=your_secret
 
 # Admin access
 ADMIN_CODE=your_secure_code
-```
 
-### Client (js/config.js)
-
-Update the API endpoints:
-
-```javascript
-// Development
-API_BASE_URL: 'http://localhost:3000/hackathon',
-
-// Production
-production: {
-  API_BASE_URL: 'https://your-domain.com/hackathon',
-}
+# Web Push (for notifications)
+VAPID_PUBLIC_KEY=your_public_key
+VAPID_PRIVATE_KEY=your_private_key
+CONTACT_EMAIL=your@email.com
 ```
 
 ## Inventory Management
 
-### Add custom items (custom.csv)
+### Custom Items (data/custom.csv)
 
 ```csv
-part number,name,description,datasheet,manufacturer,image url,price,stock
-custom-001,Arduino Uno,Microcontroller board,https://example.com/datasheet.pdf,Arduino,https://example.com/image.jpg,10.99,50
+sku,name,description,datasheet,supplier,imageUrl,price,stock,category,tags
+custom-001,Arduino Uno,Microcontroller board,https://example.com/datasheet.pdf,Arduino,https://example.com/image.jpg,10.99,50,Development Boards,arduino,microcontroller
 ```
 
-### Add DigiKey items (digikey.csv)
+### DigiKey Items (data/digikey.csv)
 
 ```csv
-digikey_part_number,price,stock
+sku,price,stock
 296-6501-1-ND,1.23,50
 ```
 
 ## Security Notes
 
 - Set a strong ADMIN_CODE
-- Don't commit the .env file
 - Keep your DigiKey credentials secure
+- Don't commit sensitive files (.env)
 
 ## License
 
 GNU Affero General Public License v3.0 (AGPL-3.0)
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-Full license text: https://www.gnu.org/licenses/agpl-3.0.en.html
